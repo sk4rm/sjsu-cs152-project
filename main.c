@@ -1,20 +1,55 @@
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <turbojpeg.h>
 
 static void print_help()
 {
     // TODO https://bettercli.org/design/cli-help-page/
     printf("Usage:\n"
            "  vishellize [file] [...]\n"
-           "  vishellize [-h | --help] [...] -- Shows this help page.");
+           "  vishellize [-v | --verbose] [file] [...] -- Display debug logs.\n"
+           "  vishellize [-h | --help] [...] -- Shows this help page.\n");
+}
+
+static unsigned long get_file_size(FILE *file)
+{
+    long current_position = ftell(file);
+
+    fseek(file, 0, SEEK_END);
+    unsigned long length = ftell(file);
+    fseek(file, current_position, SEEK_SET);
+
+    return length;
+}
+
+// https://stackoverflow.com/questions/36095915/implementing-verbose-in-c
+bool verbose_mode = false;
+static int verbose(const char *restrict format, ...)
+{
+    if (!verbose_mode)
+        return 0;
+
+    va_list args;
+    va_start(args, format);
+    int ret = vprintf(format, args);
+    va_end(args);
+
+    return ret;
+}
+
+static void process_jpeg(FILE *file)
+{
+    unsigned long jpeg_size = get_file_size(file);
+    verbose("File size: %ld\n", jpeg_size);
 }
 
 int main(int argc, char const *argv[])
 {
     FILE *file = stdin;
-    bool should_file_close = false;
 
     // Command line parsing
 
@@ -28,21 +63,28 @@ int main(int argc, char const *argv[])
             return EXIT_SUCCESS;
         }
 
+        if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0)
+        {
+            verbose_mode = true;
+            continue;
+        }
+
         // TODO: Any future flags should `continue` or `return`.
 
-        file = fopen(argv[1], "r");
+        file = fopen(arg, "r");
         if (file == NULL)
         {
             fprintf(stderr, "failed to open file '%s'\n", argv[1]);
             return EXIT_FAILURE;
         }
-        should_file_close = true;
         break;
     }
 
+    process_jpeg(file);
+
     // Clean up
 
-    if (should_file_close)
+    if (file != NULL && file != stdin)
         fclose(file);
 
     return EXIT_SUCCESS;

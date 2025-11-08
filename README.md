@@ -19,7 +19,10 @@ cat image.png | vishellize
 Compile with the following flags:
 
 ```bash
-gcc -Wall -Wextra -o vishellize main.c
+gcc -Wall \ -Wextra \
+    -I libjpeg-turbo/include \
+    -L libjpeg-turbo/lib \
+    -o vishellize main.c
 ```
 
 ## Resources
