@@ -15,7 +15,7 @@ static void print_help()
            "  vishellize [-h | --help] [...] -- Shows this help page.\n");
 }
 
-static unsigned long get_file_size(FILE *file)
+static size_t get_file_size(FILE *file)
 {
     long current_position = ftell(file);
 
@@ -43,25 +43,47 @@ static int verbose(const char *restrict format, ...)
 
 static void process_jpeg(FILE *file)
 {
-    unsigned long jpeg_size = get_file_size(file);
+    size_t jpeg_size = get_file_size(file);
     verbose("File size: %ld\n", jpeg_size);
 
-    char *jpeg_buffer = malloc(jpeg_size);
+    unsigned char *jpeg_buffer = malloc(jpeg_size);
     if (jpeg_buffer == NULL)
     {
         fprintf(stderr, "Couldn't allocate memory for file.\n");
         return;
     }
 
-    if (fread(jpeg_buffer, 1, jpeg_size, file) != jpeg_size)
+    const size_t bytes_read = fread(jpeg_buffer, 1, jpeg_size, file);
+    verbose("Read %d bytes into buffer.\n", bytes_read);
+    if (bytes_read != jpeg_size)
     {
         fprintf(stderr, "Couldn't load file contents into memory.\n");
+        free(jpeg_buffer);
         return;
     }
 
-    tjhandle decompressor = tjInitDecompress();
-    tjDestroy(decompressor);
+    tjhandle tj = tj3Init(TJINIT_DECOMPRESS);
+    if (tj == NULL)
+    {
+        fprintf(stderr, "Couldn't create TurboJPEG instance: %s.\n", tj3GetErrorStr(tj));
+        tj3Destroy(tj);
+        free(jpeg_buffer);
+        return;
+    }
 
+    if (tj3DecompressHeader(tj, jpeg_buffer, jpeg_size) < 0)
+    {
+        fprintf(stderr, "Couldn't decompress JPEG header: %s.\n", tj3GetErrorStr(tj));
+        tj3Destroy(tj);
+        free(jpeg_buffer);
+        return;
+    }
+
+    int width = tj3Get(tj, TJPARAM_JPEGWIDTH);
+    int height = tj3Get(tj, TJPARAM_JPEGHEIGHT);
+    verbose("Image resolution (px): %dx%d\n", width, height);
+
+    tj3Destroy(tj);
     free(jpeg_buffer);
 }
 
@@ -89,10 +111,10 @@ int main(int argc, char const *argv[])
 
         // TODO: Any future flags should `continue` or `return`.
 
-        file = fopen(arg, "r");
+        file = fopen(arg, "rb");
         if (file == NULL)
         {
-            fprintf(stderr, "Couldn't open file '%s'\n", argv[1]);
+            fprintf(stderr, "Couldn't open file '%s'.\n", argv[1]);
             return EXIT_FAILURE;
         }
         break;
