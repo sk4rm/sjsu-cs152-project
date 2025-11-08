@@ -41,7 +41,7 @@ static int verbose(const char *restrict format, ...)
     return ret;
 }
 
-static void process_jpeg(FILE *file)
+static int process_jpeg(FILE *file)
 {
     size_t jpeg_size = get_file_size(file);
     verbose("File size: %ld\n", jpeg_size);
@@ -50,14 +50,17 @@ static void process_jpeg(FILE *file)
     if (jpeg_buffer == NULL)
     {
         fprintf(stderr, "Couldn't allocate memory for file.\n");
-        return;
+        return 1;
     }
+
+    int retval = 0;
 
     const size_t bytes_read = fread(jpeg_buffer, 1, jpeg_size, file);
     verbose("Read %d bytes into buffer.\n", bytes_read);
     if (bytes_read != jpeg_size)
     {
         fprintf(stderr, "Couldn't load file contents into memory.\n");
+        retval = 1;
         goto cleanup;
     }
 
@@ -65,12 +68,14 @@ static void process_jpeg(FILE *file)
     if (tj == NULL)
     {
         fprintf(stderr, "Couldn't create TurboJPEG instance: %s.\n", tj3GetErrorStr(tj));
+        retval = 1;
         goto cleanup2;
     }
 
     if (tj3DecompressHeader(tj, jpeg_buffer, jpeg_size) < 0)
     {
         fprintf(stderr, "Couldn't decompress JPEG header: %s.\n", tj3GetErrorStr(tj));
+        retval = 1;
         goto cleanup2;
     }
 
@@ -78,10 +83,43 @@ static void process_jpeg(FILE *file)
     int height = tj3Get(tj, TJPARAM_JPEGHEIGHT);
     verbose("Image dimensions (px): %dx%d\n", width, height);
 
+    unsigned char *rgb_buffer = malloc(3 * width * height);
+    if (rgb_buffer == NULL)
+    {
+        fprintf(stderr, "Couldn't allocate memory for RGB buffer.\n");
+        retval = 1;
+        goto cleanup3;
+    }
+
+    // TODO: Experiment with different resolutions.
+    if (tj3Decompress8(tj, jpeg_buffer, jpeg_size, rgb_buffer, 0, TJPF_RGB))
+    {
+        fprintf(stderr, "Couldn't decompress image into RGB buffer: %s.\n", tj3GetErrorStr(tj));
+        retval = 1;
+        goto cleanup3;
+    }
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            int pixel_index = 3 * (width * y + x);
+            unsigned char r = rgb_buffer[pixel_index];
+            unsigned char g = rgb_buffer[pixel_index + 1];
+            unsigned char b = rgb_buffer[pixel_index + 2];
+
+            verbose("%02X %02X %02X\n", r, g, b);
+        }
+    }
+
+cleanup3:
+    free(rgb_buffer);
 cleanup2:
     tj3Destroy(tj);
 cleanup:
     free(jpeg_buffer);
+
+    return retval;
 }
 
 int main(int argc, char const *argv[])
