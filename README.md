@@ -8,7 +8,7 @@
 vishellize image.jpg
 ```
 
-vishellize accepts input from stdin.
+~~vishellize accepts input from stdin.~~
 
 ```bash
 cat image.png | vishellize
