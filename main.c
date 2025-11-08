@@ -45,6 +45,24 @@ static void process_jpeg(FILE *file)
 {
     unsigned long jpeg_size = get_file_size(file);
     verbose("File size: %ld\n", jpeg_size);
+
+    char *jpeg_buffer = malloc(jpeg_size);
+    if (jpeg_buffer == NULL)
+    {
+        fprintf(stderr, "Couldn't allocate memory for file.\n");
+        return;
+    }
+
+    if (fread(jpeg_buffer, 1, jpeg_size, file) != jpeg_size)
+    {
+        fprintf(stderr, "Couldn't load file contents into memory.\n");
+        return;
+    }
+
+    tjhandle decompressor = tjInitDecompress();
+    tjDestroy(decompressor);
+
+    free(jpeg_buffer);
 }
 
 int main(int argc, char const *argv[])
@@ -74,7 +92,7 @@ int main(int argc, char const *argv[])
         file = fopen(arg, "r");
         if (file == NULL)
         {
-            fprintf(stderr, "failed to open file '%s'\n", argv[1]);
+            fprintf(stderr, "Couldn't open file '%s'\n", argv[1]);
             return EXIT_FAILURE;
         }
         break;

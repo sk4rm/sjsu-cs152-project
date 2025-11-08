@@ -16,13 +16,15 @@ cat image.png | vishellize
 
 ## Build
 
-Compile with the following flags:
+Compile for Windows with the following flags:
 
-```bash
-gcc -Wall \ -Wextra \
-    -I libjpeg-turbo/include \
-    -L libjpeg-turbo/lib \
-    -o vishellize main.c
+```powershell
+zig cc -Wall -Wextra `
+    -I libjpeg-turbo/include `
+    -L libjpeg-turbo/lib `
+    -l turbojpeg `
+    -o vishellize.exe `
+    main.c
 ```
 
 ## Resources
