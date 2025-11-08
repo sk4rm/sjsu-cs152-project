@@ -1,3 +1,4 @@
+#include <locale.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -108,9 +109,16 @@ static int process_jpeg(FILE *file)
             unsigned char g = rgb_buffer[pixel_index + 1];
             unsigned char b = rgb_buffer[pixel_index + 2];
 
-            verbose("%02X %02X %02X\n", r, g, b);
+            // TODO: Use ▀ or ▄ with ANSI background coloring for ~1:1 pixel proportions.
+            printf("\x1b[38;2;%d;%d;%dm█", r, g, b);
         }
+        printf("\n");
     }
+
+    // Reset ANSI colors
+    printf("\033[0m");
+
+    // TODO: Optimize printing speed. Perhaps buffer I/O, but unsure if printf already buffers itself.
 
 cleanup3:
     free(rgb_buffer);
@@ -167,9 +175,12 @@ int main(int argc, char const *argv[])
         break;
     }
 
+    // Unicode doesn't show correctly otherwise.
+    setlocale(LC_CTYPE, "en_us.UTF8");
+
     // TODO: Determine file type by checking file signatures.
-    //       https://en.wikipedia.org/wiki/List_of_file_signatures
     //       For example, PNG files always start with 89 50 4E 47 0D 0A 1A 0A.
+    //       https://en.wikipedia.org/wiki/List_of_file_signatures
 
     process_jpeg(file);
 
