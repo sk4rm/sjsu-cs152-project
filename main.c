@@ -58,32 +58,29 @@ static void process_jpeg(FILE *file)
     if (bytes_read != jpeg_size)
     {
         fprintf(stderr, "Couldn't load file contents into memory.\n");
-        free(jpeg_buffer);
-        return;
+        goto cleanup;
     }
 
     tjhandle tj = tj3Init(TJINIT_DECOMPRESS);
     if (tj == NULL)
     {
         fprintf(stderr, "Couldn't create TurboJPEG instance: %s.\n", tj3GetErrorStr(tj));
-        tj3Destroy(tj);
-        free(jpeg_buffer);
-        return;
+        goto cleanup2;
     }
 
     if (tj3DecompressHeader(tj, jpeg_buffer, jpeg_size) < 0)
     {
         fprintf(stderr, "Couldn't decompress JPEG header: %s.\n", tj3GetErrorStr(tj));
-        tj3Destroy(tj);
-        free(jpeg_buffer);
-        return;
+        goto cleanup2;
     }
 
     int width = tj3Get(tj, TJPARAM_JPEGWIDTH);
     int height = tj3Get(tj, TJPARAM_JPEGHEIGHT);
-    verbose("Image resolution (px): %dx%d\n", width, height);
+    verbose("Image dimensions (px): %dx%d\n", width, height);
 
+cleanup2:
     tj3Destroy(tj);
+cleanup:
     free(jpeg_buffer);
 }
 
@@ -111,14 +108,30 @@ int main(int argc, char const *argv[])
 
         // TODO: Any future flags should `continue` or `return`.
 
+        if (strlen(arg) > 1 && strncmp(arg, "-", 1) == 0)
+        {
+            fprintf(stderr, "Invalid flag '%s'.\n", arg);
+            return EXIT_FAILURE;
+        }
+
+        if (strlen(arg) > 2 && strncmp(arg, "--", 2) == 0)
+        {
+            fprintf(stderr, "Invalid flag '%s'.\n", arg);
+            return EXIT_FAILURE;
+        }
+
         file = fopen(arg, "rb");
         if (file == NULL)
         {
-            fprintf(stderr, "Couldn't open file '%s'.\n", argv[1]);
+            fprintf(stderr, "Couldn't open file '%s'.\n", arg);
             return EXIT_FAILURE;
         }
         break;
     }
+
+    // TODO: Determine file type by checking file signatures.
+    //       https://en.wikipedia.org/wiki/List_of_file_signatures
+    //       For example, PNG files always start with 89 50 4E 47 0D 0A 1A 0A.
 
     process_jpeg(file);
 
