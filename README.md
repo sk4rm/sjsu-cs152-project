@@ -1,6 +1,8 @@
 # vishellize
 
-**vishellize** (portmanteau of "visualize" and "shell") is a command-line utility for rendering images as colored text in your terminal.
+**vishellize** (portmanteau of "visualize" and "shell") is a command-line utility for rendering images as colorful text in your terminal.
+
+Your terminal should support true 24-bit color and is using a monospace font (e.g. Consolas, JetBrains Mono, etc.).
 
 ## Usage
 
@@ -16,14 +18,32 @@ cat image.png | vishellize
 
 ## Build
 
-Compile for Windows with the following flags:
+### Windows
+
+TurboJPEG static libraries for Windows have been provided in the repo. Just point your compiler to `libjpeg-turbo\include`, `libjpeg-turbo\lib`, and the library itself:
 
 ```powershell
+# Example using Zig's drop-in C compiler
 zig cc -Wall -Wextra `
     -I libjpeg-turbo/include `
     -L libjpeg-turbo/lib `
     -l turbojpeg `
     -o vishellize.exe `
+    main.c
+```
+
+### Linux
+
+You will need to install `libturbo-jpeg` with your package manager prior to compilation.
+
+```bash
+# Example using pacman and clang on Arch Linux
+sudo pacman -S libjpeg-turbo
+clang -Wall -Wextra \
+    -I libjpeg-turbo/include \
+    -L libjpeg-turbo/lib \
+    -l turbojpeg \
+    -o vishellize \
     main.c
 ```
 
