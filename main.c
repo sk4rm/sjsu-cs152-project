@@ -7,6 +7,13 @@
 #include <stdlib.h>
 #include <turbojpeg.h>
 
+// Import specific OS-specific headers.
+#if defined(_WIN32)
+#include <Windows.h>
+#elif defined(__linux__)
+#include <sys/ioctl.h>
+#endif
+
 // -------------------------------------------------------------
 // Helper: Print help menu
 // -------------------------------------------------------------
@@ -45,6 +52,21 @@ static int verbose(const char *restrict format, ...)
     int ret = vprintf(format, args);
     va_end(args);
     return ret;
+}
+
+void get_terminal_size(int *width, int *height)
+{
+#if defined(_WIN32)
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    *width = (int)(csbi.srWindow.Right - csbi.srWindow.Left + 1);
+    *height = (int)(csbi.srWindow.Bottom - csbi.srWindow.Top + 1);
+#elif defined(__linux__)
+    struct winsize w;
+    ioctl(fileno(stdout), TIOCGWINSZ, &w);
+    *width = (int)(w.ws_col);
+    *height = (int)(w.ws_row);
+#endif
 }
 
 // -------------------------------------------------------------
@@ -185,6 +207,11 @@ int main(int argc, char const *argv[])
         }
         break;
     }
+
+    int width;
+    int height;
+    get_terminal_size(&width, &height);
+    verbose("Terminal dimensions: %d x %d\n", width, height);
 
     setlocale(LC_CTYPE, "en_us.UTF8"); // Unicode handling
 
