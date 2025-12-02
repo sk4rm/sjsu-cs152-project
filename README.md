@@ -37,23 +37,15 @@ zig cc -Wall -Wextra `
 
 You will need to install `libturbojpeg` (V3) with your package manager prior to compilation.
 
-```bash
-# Example using pacman and clang on Arch Linux
-sudo pacman -S libjpeg-turbo
-clang -Wall -Wextra \
-    -I libjpeg-turbo/include \
-    -L libjpeg-turbo/lib \
-    -l turbojpeg \
-    -l png \
-    -o vishellize \
-	png_handler.c main.c
-```
-
 In Ubuntu, the default `libturbojpeg` version is v2. Refer to [the official libturbo-jpeg website](https://libjpeg-turbo.org/Downloads/YUM) for instructions on installing v3.
 
 Then, compile with the following:
 
 ```bash
+# Make
+make
+
+# Alternatively, manual
 cc -Wall -Wextra \
 	-I /opt/libjpeg-turbo/include \
 	-L /opt/libjpeg-turbo/lib64 \
