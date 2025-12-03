@@ -19,19 +19,11 @@ cat image.png | vishellize
 
 ## Build
 
-### Windows
+### Prerequisites
 
-TurboJPEG static libraries for Windows have been provided in the repo. Just point your compiler to `libjpeg-turbo\include`, `libjpeg-turbo\lib`, and the library itself:
-
-```powershell
-# Example using Zig's drop-in C compiler
-zig cc -Wall -Wextra `
-    -I libjpeg-turbo/include `
-    -L libjpeg-turbo/lib `
-    -l turbojpeg `
-    -o vishellize.exe `
-    main.c
-```
+1. libturbojpeg.a>=3.0
+2. libpng.a
+3. libz.a (typically included with libpng)
 
 ### Linux
 
@@ -42,17 +34,7 @@ In Ubuntu, the default `libturbojpeg` version is v2. Refer to [the official libt
 Then, compile with the following:
 
 ```bash
-# Make
 make
-
-# Alternatively, manual
-cc -Wall -Wextra \
-	-I /opt/libjpeg-turbo/include \
-	-L /opt/libjpeg-turbo/lib64 \
-	-l turbojpeg \
-	-l png \
-	-o vishellize \
-	png_handler.c main.c 
 ```
 
 ## Resources
