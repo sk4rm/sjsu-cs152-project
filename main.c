@@ -171,7 +171,7 @@ static int process_jpeg(FILE *file, const int target_width, const int target_hei
                    r_top, g_top, b_top,
                    r_bottom, g_bottom, b_bottom);
         }
-        printf("\n");
+        printf("\033[0m\n");
     }
 
     // Handle odd target_height: render final row if there's an odd pixel left
@@ -194,7 +194,7 @@ static int process_jpeg(FILE *file, const int target_width, const int target_hei
             // Print half-block with the pixel as background and black as foreground
             printf("\x1b[48;2;%d;%d;%d;38;2;0;0;0m▄", r, g, b);
         }
-        printf("\n");
+        printf("\033[0m\n");
     }
 
     printf("\033[0m"); // Reset ANSI colors
