@@ -72,7 +72,7 @@ void get_terminal_size(int *width, int *height)
 // -------------------------------------------------------------
 // JPEG Processing Function
 // -------------------------------------------------------------
-static int process_jpeg(FILE *file)
+static int process_jpeg(FILE *file, const int target_width, const int target_height)
 {
     size_t jpeg_size = get_file_size(file);
     verbose("File size: %ld\n", jpeg_size);
@@ -110,11 +110,11 @@ static int process_jpeg(FILE *file)
         return 1;
     }
 
-    int width = tj3Get(tj, TJPARAM_JPEGWIDTH);
-    int height = tj3Get(tj, TJPARAM_JPEGHEIGHT);
-    verbose("Image dimensions (px): %dx%d\n", width, height);
+    int jpeg_width = tj3Get(tj, TJPARAM_JPEGWIDTH);
+    int jpeg_height = tj3Get(tj, TJPARAM_JPEGHEIGHT);
+    verbose("Image dimensions (px): %dx%d\n", jpeg_width, jpeg_height);
 
-    unsigned char *rgb_buffer = malloc(3 * width * height);
+    unsigned char *rgb_buffer = malloc(3 * jpeg_width * jpeg_height);
     if (rgb_buffer == NULL)
     {
         fprintf(stderr, "Couldn't allocate memory for RGB buffer.\n");
@@ -132,12 +132,24 @@ static int process_jpeg(FILE *file)
         return 1;
     }
 
+    // Calculate target scale
+    float x_scale = (float)jpeg_width / target_width;
+    float y_scale = (float)jpeg_height / target_height;
+
     // Render JPEG
-    for (int y = 0; y < height; y++)
+    for (int y = 0; y < target_height; y++)
     {
-        for (int x = 0; x < width; x++)
+        for (int x = 0; x < target_width; x++)
         {
-            int pixel_index = 3 * (width * y + x);
+            // Map target coordinates to source coordinates
+            int src_x = (int)(x * x_scale);
+            int src_y = (int)(y * y_scale);
+
+            // Clamp to source image bounds
+            src_x = (src_x < jpeg_width) ? src_x : jpeg_width - 1;
+            src_y = (src_y < jpeg_height) ? src_y : jpeg_height - 1;
+
+            int pixel_index = 3 * (jpeg_width * src_y + src_x);
             unsigned char r = rgb_buffer[pixel_index];
             unsigned char g = rgb_buffer[pixel_index + 1];
             unsigned char b = rgb_buffer[pixel_index + 2];
@@ -246,7 +258,7 @@ int main(int argc, char const *argv[])
     }
     else if (ends_with(filename, ".jpg") || ends_with(filename, ".jpeg"))
     {
-        process_jpeg(file);
+        process_jpeg(file, width, height);
     }
     else
     {
