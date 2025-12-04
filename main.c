@@ -227,9 +227,22 @@ int main(int argc, char const *argv[])
 {
     FILE *file = stdin;
 
+    // Terminal width and height
+    int width;
+    int height;
+    get_terminal_size(&width, &height);
+    verbose("Terminal dimensions: %d x %d\n", width, height);
+
     // Command line parsing
+    bool skip_next = false;
     for (int i = 1; i < argc; i++)
     {
+        if (skip_next)
+        {
+            skip_next = false;
+            continue;
+        }
+
         const char *arg = argv[i];
 
         if (strcmp(arg, "-h") == 0 || strcmp(arg, "--help") == 0)
@@ -241,6 +254,22 @@ int main(int argc, char const *argv[])
         if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0)
         {
             verbose_mode = true;
+            continue;
+        }
+
+        if (strcmp(arg, "-w") == 0 || strcmp(arg, "--width") == 0)
+        {
+            width = strtol(argv[i + 1], NULL, 10);
+            verbose("Setting width to %d\n", width);
+            skip_next = true;
+            continue;
+        }
+
+        if (strcmp(arg, "-h") == 0 || strcmp(arg, "--height") == 0)
+        {
+            height = strtol(argv[i + 1], NULL, 10);
+            verbose("Setting height to %d\n", height);
+            skip_next = true;
             continue;
         }
 
@@ -258,11 +287,6 @@ int main(int argc, char const *argv[])
         }
         break;
     }
-
-    int width;
-    int height;
-    get_terminal_size(&width, &height);
-    verbose("Terminal dimensions: %d x %d\n", width, height);
 
     setlocale(LC_CTYPE, "en_us.UTF8"); // Unicode handling
 
