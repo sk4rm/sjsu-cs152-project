@@ -137,15 +137,52 @@ static int process_jpeg(FILE *file, const int target_width, const int target_hei
     float y_scale = (float)jpeg_height / target_height;
 
     // Render JPEG
-    for (int y = 0; y < target_height; y++)
+    // Each terminal cell displays two vertically-stacked pixels:
+    // - Top pixel via background color (48;2)
+    // - Bottom pixel via foreground color (38;2)
+
+    int terminal_rows = target_height / 2;
+    for (int y = 0; y < terminal_rows; y++)
     {
         for (int x = 0; x < target_width; x++)
         {
-            // Map target coordinates to source coordinates
+            // Sample top pixel
             int src_x = (int)(x * x_scale);
-            int src_y = (int)(y * y_scale);
+            int src_y_top = (int)((y * 2) * y_scale);
+            src_x = (src_x < jpeg_width) ? src_x : jpeg_width - 1;
+            src_y_top = (src_y_top < jpeg_height) ? src_y_top : jpeg_height - 1;
 
-            // Clamp to source image bounds
+            int pixel_index_top = 3 * (jpeg_width * src_y_top + src_x);
+            unsigned char r_top = rgb_buffer[pixel_index_top];
+            unsigned char g_top = rgb_buffer[pixel_index_top + 1];
+            unsigned char b_top = rgb_buffer[pixel_index_top + 2];
+
+            // Sample bottom pixel
+            int src_y_bottom = (int)((y * 2 + 1) * y_scale);
+            src_y_bottom = (src_y_bottom < jpeg_height) ? src_y_bottom : jpeg_height - 1;
+
+            int pixel_index_bottom = 3 * (jpeg_width * src_y_bottom + src_x);
+            unsigned char r_bottom = rgb_buffer[pixel_index_bottom];
+            unsigned char g_bottom = rgb_buffer[pixel_index_bottom + 1];
+            unsigned char b_bottom = rgb_buffer[pixel_index_bottom + 2];
+
+            // Print half-block with two colors
+            printf("\x1b[48;2;%d;%d;%d;38;2;%d;%d;%dm▄",
+                   r_top, g_top, b_top,
+                   r_bottom, g_bottom, b_bottom);
+        }
+        printf("\n");
+    }
+
+    // Handle odd target_height: render final row if there's an odd pixel left
+    if (target_height % 2 != 0)
+    {
+        int y = terminal_rows;
+        for (int x = 0; x < target_width; x++)
+        {
+            // Sample the last row pixel
+            int src_x = (int)(x * x_scale);
+            int src_y = (int)((y * 2) * y_scale);
             src_x = (src_x < jpeg_width) ? src_x : jpeg_width - 1;
             src_y = (src_y < jpeg_height) ? src_y : jpeg_height - 1;
 
@@ -153,7 +190,9 @@ static int process_jpeg(FILE *file, const int target_width, const int target_hei
             unsigned char r = rgb_buffer[pixel_index];
             unsigned char g = rgb_buffer[pixel_index + 1];
             unsigned char b = rgb_buffer[pixel_index + 2];
-            printf("\x1b[38;2;%d;%d;%dm█", r, g, b);
+
+            // Print half-block with the pixel as background and black as foreground
+            printf("\x1b[48;2;%d;%d;%d;38;2;0;0;0m▄", r, g, b);
         }
         printf("\n");
     }
