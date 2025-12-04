@@ -42,7 +42,7 @@ static size_t get_file_size(FILE *file)
 // -------------------------------------------------------------
 bool verbose_mode = false;
 
-static int verbose(const char *restrict format, ...)
+int verbose(const char *restrict format, ...)
 {
     if (!verbose_mode)
         return 0;
@@ -219,7 +219,72 @@ int ends_with(const char *str, const char *suffix)
         return 0;
     return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
+void render_png_downscaled(PNGImage img, int target_width, int target_height)
+{
+    int src_width = img.width;
+    int src_height = img.height;
+    unsigned char *pixels = img.pixels; // RGBA
 
+    float x_scale = (float)src_width / target_width;
+    float y_scale = (float)src_height / target_height;
+
+    int terminal_rows = target_height / 2;
+
+    for (int y = 0; y < terminal_rows; y++)
+    {
+        for (int x = 0; x < target_width; x++)
+        {
+            int sx = (int)(x * x_scale);
+
+            /* ---- Sample TOP pixel ---- */
+            int sy_top = (int)((y * 2) * y_scale);
+            if (sy_top >= src_height) sy_top = src_height - 1;
+            if (sx >= src_width) sx = src_width - 1;
+
+            int top_idx = 4 * (sy_top * src_width + sx);
+            unsigned char r_top = pixels[top_idx + 0];
+            unsigned char g_top = pixels[top_idx + 1];
+            unsigned char b_top = pixels[top_idx + 2];
+
+            /* ---- Sample BOTTOM pixel ---- */
+            int sy_bot = (int)((y * 2 + 1) * y_scale);
+            if (sy_bot >= src_height) sy_bot = src_height - 1;
+
+            int bot_idx = 4 * (sy_bot * src_width + sx);
+            unsigned char r_bot = pixels[bot_idx + 0];
+            unsigned char g_bot = pixels[bot_idx + 1];
+            unsigned char b_bot = pixels[bot_idx + 2];
+
+            printf("\x1b[48;2;%d;%d;%d;38;2;%d;%d;%d" "m▄",
+                   r_top, g_top, b_top,
+                   r_bot, g_bot, b_bot);
+        }
+        printf("\033[0m\n");
+    }
+
+    /* Render last odd row if height is odd */
+    if (target_height % 2 != 0)
+    {
+        int y = terminal_rows;
+
+        for (int x = 0; x < target_width; x++)
+        {
+            int sx = (int)(x * x_scale);
+
+            int sy = (int)((y * 2) * y_scale);
+            if (sy >= src_height) sy = src_height - 1;
+            if (sx >= src_width) sx = src_width - 1;
+
+            int idx = 4 * (sy * src_width + sx);
+            unsigned char r = pixels[idx + 0];
+            unsigned char g = pixels[idx + 1];
+            unsigned char b = pixels[idx + 2];
+
+            printf("\x1b[48;2;%d;%d;%d;38;2;0;0;0m▄", r, g, b);
+        }
+        printf("\033[0m\n");
+    }
+}
 // -------------------------------------------------------------
 // MAIN FUNCTION
 // -------------------------------------------------------------
@@ -302,20 +367,7 @@ int main(int argc, char const *argv[])
             return EXIT_FAILURE;
         }
 
-        // Render PNG
-        for (int y = 0; y < img.height; y++)
-        {
-            unsigned char *row = img.pixels + y * img.width * 4; // 4 bytes per pixel (RGBA)
-            for (int x = 0; x < img.width; x++)
-            {
-                unsigned char *px = &row[x * 4];
-                unsigned char r = px[0];
-                unsigned char g = px[1];
-                unsigned char b = px[2];
-                printf("\x1b[38;2;%d;%d;%dm█", r, g, b);
-            }
-            printf("\x1b[0m\n");
-        }
+        render_png_downscaled(img, width, height);
 
         free(img.pixels);
     }

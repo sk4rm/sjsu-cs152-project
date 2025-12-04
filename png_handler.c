@@ -1,7 +1,11 @@
 #include <png.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h> 
 #include "png_handler.h"
+
+extern int verbose(const char *restrict format, ...);
+extern bool verbose_mode;
 
 
 PNGImage load_png(const char *filename) {
@@ -36,6 +40,10 @@ PNGImage load_png(const char *filename) {
 
     img.width = png_get_image_width(png_ptr, info_ptr);
     img.height = png_get_image_height(png_ptr, info_ptr);
+
+    // ⭐ ADD THIS:
+    verbose("PNG dimensions (px): %d x %d\n", img.width, img.height);
+
     png_byte color_type = png_get_color_type(png_ptr, info_ptr);
     png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
 
@@ -58,6 +66,11 @@ PNGImage load_png(const char *filename) {
     png_read_update_info(png_ptr, info_ptr);
 
     int rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+
+    // ⭐ ADD THIS:
+    verbose("PNG rowbytes: %d\n", rowbytes);
+    verbose("Allocating PNG buffer: %d bytes\n", rowbytes * img.height);
+
     img.pixels = (unsigned char *)malloc(rowbytes * img.height);
     png_bytep *row_pointers = (png_bytep *)malloc(sizeof(png_bytep) * img.height);
 

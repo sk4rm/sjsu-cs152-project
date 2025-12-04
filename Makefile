@@ -1,16 +1,18 @@
 CC ?= cc
 
+# Homebrew library locations (Apple Silicon)
 TURBOJPEG_A = /opt/libjpeg-turbo/lib64/libturbojpeg.a
-PNG_A       = /usr/lib/x86_64-linux-gnu/libpng.a
-ZLIB_A      = /usr/lib/x86_64-linux-gnu/libz.a
+PNG_LIBPATH = /opt/homebrew/lib
+ZLIB_LIBPATH = /opt/homebrew/lib
 
-CFLAGS = -Wall -Wextra -I/opt/libjpeg-turbo/include
+# Include paths
+CFLAGS = -Wall -Wextra -I/opt/libjpeg-turbo/include -I/opt/homebrew/include
 
-# LDFLAGS = 
-LDFLAGS = -static
+# macOS cannot use -static, so remove it
+LDFLAGS = -L/opt/libjpeg-turbo/lib64 -L/opt/homebrew/lib
 
-# LDLIBS  = $(TURBOJPEG_A) $(PNG_A) $(ZLIB_A)
-LDLIBS  = $(TURBOJPEG_A) $(PNG_A) $(ZLIB_A) -lm
+# Link dynamically on macOS
+LDLIBS = -lturbojpeg -lpng -lz -lm
 
 TARGET = vishellize
 SRCS   = png_handler.c main.c
