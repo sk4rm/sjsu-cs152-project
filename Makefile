@@ -15,7 +15,7 @@ LDFLAGS = -L/opt/libjpeg-turbo/lib64 -L/opt/homebrew/lib
 LDLIBS = -lturbojpeg -lpng -lz -lm
 
 TARGET = vishellize
-SRCS   = png_handler.c main.c
+SRCS   = png_handler.c gif_handler.c main.c
 OBJS   = $(SRCS:.c=.o)
 
 all: $(TARGET)

@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <turbojpeg.h>
+#include "gif_handler.h"
+#include <unistd.h>   // for usleep()
+
 
 // Import specific OS-specific headers.
 #if defined(_WIN32)
@@ -285,6 +288,49 @@ void render_png_downscaled(PNGImage img, int target_width, int target_height)
         printf("\033[0m\n");
     }
 }
+void render_frame_downscaled(unsigned char* pixels,
+                             int src_width,
+                             int src_height,
+                             int target_width,
+                             int target_height)
+{
+    float x_scale = (float)src_width / target_width;
+    float y_scale = (float)src_height / target_height;
+
+    int terminal_rows = target_height / 2;
+
+    for (int y = 0; y < terminal_rows; y++)
+    {
+        for (int x = 0; x < target_width; x++)
+        {
+            int sx = (int)(x * x_scale);
+
+            // TOP pixel
+            int sy_top = (int)((y * 2) * y_scale);
+            if (sx >= src_width) sx = src_width - 1;
+            if (sy_top >= src_height) sy_top = src_height - 1;
+
+            int idx_top = 4 * (src_width * sy_top + sx);
+            unsigned char r_top = pixels[idx_top + 0];
+            unsigned char g_top = pixels[idx_top + 1];
+            unsigned char b_top = pixels[idx_top + 2];
+
+            // BOTTOM pixel
+            int sy_bottom = (int)((y * 2 + 1) * y_scale);
+            if (sy_bottom >= src_height) sy_bottom = src_height - 1;
+
+            int idx_bottom = 4 * (src_width * sy_bottom + sx);
+            unsigned char r_bottom = pixels[idx_bottom + 0];
+            unsigned char g_bottom = pixels[idx_bottom + 1];
+            unsigned char b_bottom = pixels[idx_bottom + 2];
+
+            printf("\x1b[48;2;%d;%d;%d;38;2;%d;%d;%dm▄",
+                   r_top, g_top, b_top,
+                   r_bottom, g_bottom, b_bottom);
+        }
+        printf("\033[0m\n");
+    }
+}
 // -------------------------------------------------------------
 // MAIN FUNCTION
 // -------------------------------------------------------------
@@ -309,6 +355,9 @@ int main(int argc, char const *argv[])
         }
 
         const char *arg = argv[i];
+        printf("ARG[%d] = %s\n", i, arg);
+
+        
 
         if (strcmp(arg, "-h") == 0 || strcmp(arg, "--help") == 0)
         {
@@ -357,6 +406,12 @@ int main(int argc, char const *argv[])
 
     // Detect file type by extension
     const char *filename = argv[argc - 1];
+    // DEBUG CHECK
+    printf("DEBUG: filename = '%s'\n", filename);
+    printf("DEBUG: ends_with(.gif) = %d\n", ends_with(filename, ".gif"));
+    printf("DEBUG: ends_with(.png) = %d\n", ends_with(filename, ".png"));
+    printf("DEBUG: ends_with(.jpg) = %d\n", ends_with(filename, ".jpg"));
+    printf("DEBUG: ends_with(.jpeg) = %d\n", ends_with(filename, ".jpeg"));
 
     if (ends_with(filename, ".png"))
     {
@@ -374,6 +429,66 @@ int main(int argc, char const *argv[])
     else if (ends_with(filename, ".jpg") || ends_with(filename, ".jpeg"))
     {
         process_jpeg(file, width, height);
+    }
+   else if (ends_with(filename, ".gif"))
+{
+    GIFImage gif = load_gif(filename);
+    if (!gif.frames)
+    {
+        fprintf(stderr, "Failed to load GIF image.\n");
+        return EXIT_FAILURE;
+    }
+
+    verbose("Loaded GIF %s: %dx%d, %d frames\n",
+            filename, gif.width, gif.height, gif.frame_count);
+
+    printf("Press ENTER to show GIF...\n");
+    getchar();
+
+    
+    printf("\033[?25l");
+
+    for (int f = 0; f < gif.frame_count; f++)
+    {
+        // Hide cursor for clean animation
+        printf("\033[?25l");
+
+        // 🔥 Proper full clear (including scrollback)
+        printf("\033[2J\033[H\033[3J");
+
+        unsigned char* frame = gif_get_frame(&gif, f);
+        if (!frame) continue;
+
+        render_frame_downscaled(
+            frame,
+            gif.width,
+            gif.height,
+            width,
+            height
+        );
+
+        fflush(stdout);
+
+        // Show debug ONLY in verbose mode
+        if (verbose_mode)
+            printf("Frame %d raw_delay=%d cs (centiseconds)\n", 
+                f, gif.delays ? gif.delays[f] : -1);
+
+        // Delay handling
+        int raw_delay = gif.delays ? gif.delays[f] : 5;   // centiseconds
+        int delay_ms = raw_delay * 10;                    // convert to ms
+
+        // Smooth FPS control
+        if (delay_ms > 80) delay_ms = 80;   // max ~12 FPS
+        if (delay_ms < 30) delay_ms = 30;   // min ~33 FPS
+
+        usleep(delay_ms * 1000);
+    }
+
+    // Restore cursor after done
+    printf("\033[?25h");
+
+    free_gif(&gif);
     }
     else
     {
