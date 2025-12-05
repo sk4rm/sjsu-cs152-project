@@ -48,3 +48,7 @@ https://stackoverflow.com/questions/59864651/how-to-use-the-utf-8-half-block-to-
 https://en.wikipedia.org/wiki/List_of_file_signatures
 
 https://github.com/libjpeg-turbo/libjpeg-turbo/blob/466c3448781cac35236b5e6770477a66d627b521/src/tjdecomp.c
+
+https://github.com/nothings/stb/blob/master/stb_image.h  
+stb_image.h — public-domain / MIT-licensed single-header library for image decoding  
+Used for GIF decoding and multi-frame extraction.
