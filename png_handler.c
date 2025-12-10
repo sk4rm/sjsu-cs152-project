@@ -1,25 +1,27 @@
 #include <png.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 #include "png_handler.h"
 
 extern int verbose(const char *restrict format, ...);
 extern bool verbose_mode;
 
-
-PNGImage load_png(const char *filename) {
+PNGImage load_png(const char *filename)
+{
     PNGImage img = {0};
 
     FILE *fp = fopen(filename, "rb");
-    if (!fp) {
+    if (!fp)
+    {
         perror("Error opening PNG file");
         return img;
     }
 
     unsigned char header[8];
     fread(header, 1, 8, fp);
-    if (png_sig_cmp(header, 0, 8)) {
+    if (png_sig_cmp(header, 0, 8))
+    {
         fprintf(stderr, "Not a valid PNG file\n");
         fclose(fp);
         return img;
@@ -28,7 +30,8 @@ PNGImage load_png(const char *filename) {
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     png_infop info_ptr = png_create_info_struct(png_ptr);
 
-    if (setjmp(png_jmpbuf(png_ptr))) {
+    if (setjmp(png_jmpbuf(png_ptr)))
+    {
         fprintf(stderr, "Error reading PNG\n");
         fclose(fp);
         return img;

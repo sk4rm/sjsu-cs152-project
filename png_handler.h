@@ -1,7 +1,8 @@
 #ifndef PNG_HANDLER_H
 #define PNG_HANDLER_H
 
-typedef struct {
+typedef struct
+{
     unsigned char *pixels;
     int width;
     int height;
