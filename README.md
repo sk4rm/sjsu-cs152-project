@@ -11,12 +11,6 @@ Your terminal should support true 24-bit color and is using a monospace font (e.
 ./vishellize image.jpg
 ```
 
-~~vishellize accepts input from stdin.~~
-
-```bash
-cat image.png | vishellize
-```
-
 ## Build
 
 ### Prerequisites
